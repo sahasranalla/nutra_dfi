@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drug–Food Interaction (DFI) Prediction System</title>
+  <meta name="description"
+    content="A student-built Drug-Food Interaction Prediction System frontend with clinical explainability and interaction risk gauge.">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark-theme">
+
+  <!-- ========================================================
+       1. LOGIN & USER PROFILE SETUP MODAL (Appears on Load)
+       ======================================================== -->
+  <div id="loginModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-brand">
+          <div class="brand-icon">
+            <!-- Medical / Hexagon Cross Icon -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </div>
+          <div>
+            <h2 class="modal-title">Drug–Food Interaction System</h2>
+            <p class="modal-subtitle">Student Project • User Login & Clinical Profile</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <p class="form-instruction">Please enter your profile details to enter the prediction hub:</p>
+
+        <form id="loginForm">
+          <!-- Required Login Credentials -->
+          <div class="form-section-title">Required Account Information</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputFullName">Full Name *</label>
+              <input type="text" id="inputFullName" required placeholder="e.g., Sahasra Nalla" value="Sahasra Nalla">
+            </div>
+            <div class="form-group">
+              <label for="inputUsername">Username *</label>
+              <input type="text" id="inputUsername" required placeholder="e.g., sahasra_n" value="sahasra_n">
+            </div>
+            <div class="form-group">
+              <label for="inputAge">Age *</label>
+              <input type="number" id="inputAge" required min="1" max="120" placeholder="e.g., 21" value="21">
+            </div>
+            <div class="form-group">
+              <label for="inputGender">Gender *</label>
+              <select id="inputGender" required>
+                <option value="Female" selected>Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other / Prefer not to say</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inputEmail">Email Address *</label>
+              <input type="email" id="inputEmail" required placeholder="e.g., sahasra@college.edu"
+                value="sahasra@college.edu">
+            </div>
+            <div class="form-group">
+              <label for="inputPassword">Password *</label>
+              <input type="password" id="inputPassword" required placeholder="••••••••" value="student123">
+            </div>
+          </div>
+
+          <!-- Optional Health Profile Information -->
+          <div class="form-section-title optional-title">
+            Optional Health & Dietary Profile
+            <span class="optional-badge">Profile Only • Not ML Input</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputHeight">Height (cm)</label>
+              <input type="number" id="inputHeight" placeholder="e.g., 165" value="165">
+            </div>
+            <div class="form-group">
+              <label for="inputWeight">Weight (kg)</label>
+              <input type="number" id="inputWeight" placeholder="e.g., 58" value="58">
+            </div>
+            <div class="form-group">
+              <label for="inputDiet">Dietary Preference</label>
+              <select id="inputDiet">
+                <option value="Vegetarian" selected>Vegetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="Eggetarian">Eggetarian</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inputAllergies">Known Allergies</label>
+              <input type="text" id="inputAllergies" placeholder="e.g., Penicillin, Peanuts" value="None">
+            </div>
+            <div class="form-group full-width">
+              <label for="inputConditions">Existing Medical Conditions</label>
+              <input type="text" id="inputConditions" placeholder="e.g., Mild Asthma, Hypertension" value="None">
+            </div>
+          </div>
+
+          <!-- Note for Project Review / Viva -->
+          <div class="viva-note">
+            <span class="viva-note-icon">ℹ️</span>
+            <span><strong>Viva Note:</strong> Profile information is strictly for displaying user details. As per
+              requirements, these details are <em>NOT</em> used as inputs to the DFI prediction model.</span>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="autofillBtn" class="btn btn-secondary">Fill Sample Data</button>
+            <button type="submit" class="btn btn-primary">Login & Open Dashboard</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       2. USER PROFILE DETAILS MODAL (Viewable from Top-Right)
+       ======================================================== -->
+  <div id="profileViewModal" class="modal-overlay hidden">
+    <div class="modal-card profile-details-card">
+      <div class="modal-header">
+        <div class="modal-brand">
+          <div class="avatar-circle large" id="modalProfileAvatar">SN</div>
+          <div>
+            <h2 class="modal-title" id="modalProfileName">Sahasra Nalla</h2>
+            <p class="modal-subtitle" id="modalProfileUsername">@sahasra_n • Registered Student Profile</p>
+          </div>
+        </div>
+        <button type="button" id="closeProfileModalBtn" class="close-btn" aria-label="Close Profile">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="profile-info-grid">
+          <div class="profile-field">
+            <span class="field-label">Email:</span>
+            <span class="field-value" id="displayEmail">sahasra@college.edu</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Age & Gender:</span>
+            <span class="field-value" id="displayAgeGender">21 years, Female</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Height:</span>
+            <span class="field-value" id="displayHeight">165 cm</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Weight:</span>
+            <span class="field-value" id="displayWeight">58 kg</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Dietary Preference:</span>
+            <span class="field-value" id="displayDiet">Vegetarian</span>
+          </div>
+          <div class="profile-field">
+            <span class="field-label">Known Allergies:</span>
+            <span class="field-value" id="displayAllergies">None</span>
+          </div>
+          <div class="profile-field full-width">
+            <span class="field-label">Existing Conditions:</span>
+            <span class="field-value" id="displayConditions">None</span>
+          </div>
+        </div>
+
+        <div class="viva-note">
+          <span class="viva-note-icon">🔒</span>
+          <span>This profile data is saved locally for account display and is decoupled from prediction
+            calculations.</span>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="editProfileBtn" class="btn btn-secondary">Edit Profile</button>
+          <button type="button" id="closeProfileBtn" class="btn btn-primary">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       3. MAIN APPLICATION LAYOUT
+       ======================================================== -->
+  <div class="app-layout">
+
+    <!-- LEFT SIDEBAR (Follows Reference Image) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo-hex">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"></polygon>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+        </div>
+        <div class="brand-text">DFI Hub</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Home (Active by default) -->
+        <button class="nav-btn active" data-tab="home" title="Home">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span class="nav-label">Home</span>
+        </button>
+
+        <!-- Analytics -->
+        <button class="nav-btn" data-tab="analytics" title="Analytics">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M18 20V10"></path>
+            <path d="M12 20V4"></path>
+            <path d="M6 20v-6"></path>
+          </svg>
+          <span class="nav-label">Analytics</span>
+        </button>
+
+        <!-- Reports -->
+        <button class="nav-btn" data-tab="reports" title="Reports">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span class="nav-label">Reports</span>
+        </button>
+
+        <!-- History -->
+        <button class="nav-btn" data-tab="history" title="History">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span class="nav-label">History</span>
+        </button>
+
+        <!-- Alerts -->
+        <button class="nav-btn" data-tab="alerts" title="Alerts">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="nav-label">Alerts</span>
+          <span class="nav-badge">3</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Bottom: Profile & Logout -->
+      <div class="sidebar-bottom">
+        <button id="sidebarProfileBtn" class="nav-btn" title="View User Profile">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span class="nav-label">Profile</span>
+        </button>
+
+        <button id="logoutBtn" class="nav-btn logout-btn" title="Logout">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span class="nav-label">Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <div class="main-wrapper">
+
+      <!-- TOP HEADER BAR -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 class="header-title">Explainable Drug–Food Interaction Hub</h1>
+          <div class="header-badges">
+            <span class="badge badge-cyan">Active Interaction Hub</span>
+            <span class="badge badge-green">BioBERT + XGBoost</span>
+            <span class="badge badge-purple">Integrative: Allopathic & Homeopathic</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Dark / Light Mode Toggle Button -->
+          <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Dark/Light Mode">
+            <span class="theme-icon" id="themeIcon">🌙</span>
+            <span class="theme-text" id="themeText">Dark Mode</span>
+          </button>
+
+          <!-- Top-Right User Profile Chip -->
+          <div id="topProfileChip" class="profile-chip" title="Click to view profile details">
+            <div class="avatar-circle" id="topAvatar">SN</div>
+            <div class="profile-chip-info">
+              <span class="profile-chip-name" id="topProfileName">Sahasra Nalla</span>
+              <span class="profile-chip-role">Student Profile</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- CONTENT BODY (Home view & Tab placeholder views) -->
+      <main class="content-body">
+
+        <!-- ==========================================
+             VIEW 1: HOME TAB (The Main DFI Dashboard)
+             ========================================== -->
+        <section id="homeView" class="tab-view active-view">
+          <div class="dashboard-grid">
+
+            <!-- LEFT COLUMN: MAIN INPUT CARD -->
+            <div class="card input-card">
+              <div class="card-header">
+                <div class="card-icon-box">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="card-title">Multi-Modal Interaction Input</h2>
+                  <p class="card-subtitle">Select medicine system and enter your query below.</p>
+                </div>
+              </div>
+
+              <div class="input-form-content">
+
+                <!-- 1. Select Medicine System -->
+                <div class="input-section">
+                  <label class="section-label">1. SELECT MEDICINE SYSTEM</label>
+                  <div class="system-toggle-group">
+                    <button type="button" id="btnSystemAllopathic" class="system-toggle-btn active"
+                      data-system="Allopathic">
+                      <span class="system-icon">💊</span>
+                      <span class="system-info">
+                        <strong>Allopathic</strong>
+                        <small>BioBERT + MOE</small>
+                      </span>
+                    </button>
+
+                    <button type="button" id="btnSystemHomeopathic" class="system-toggle-btn" data-system="Homeopathic">
+                      <span class="system-icon">🌿</span>
+                      <span class="system-info">
+                        <strong>Homeopathic</strong>
+                        <small>Materia Medica</small>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 2. Natural-Language Query -->
+                <div class="input-section">
+                  <div class="section-header-inline">
+                    <label class="section-label" for="queryInput">2. NATURAL-LANGUAGE QUERY</label>
+                    <button type="button" id="clearQueryBtn" class="link-btn">Clear</button>
+                  </div>
+                  <div class="query-box-wrapper">
+                    <textarea id="queryInput" class="query-textarea" rows="3"
+                      placeholder="e.g., Taking Lipitor and drinking grapefruit juice">Taking Lipitor and grapefruit juice</textarea>
+                  </div>
+                </div>
+
+                <!-- Quick Presets -->
+                <div class="input-section">
+                  <label class="section-label">QUICK PRESETS</label>
+                  <div class="presets-grid">
+                    <button type="button" class="preset-btn" data-preset="Lipitor + Grapefruit">
+                      Lipitor + Grapefruit
+                    </button>
+                    <button type="button" class="preset-btn" data-preset="Warfarin + Spinach">
+                      Warfarin + Spinach
+                    </button>
+                    <button type="button" class="preset-btn" data-preset="Paracetamol + Milk">
+                      Paracetamol + Milk
+                    </button>
+                    <button type="button" class="preset-btn" data-preset="Iron Supplements + Orange Juice">
+                      Iron + Orange Juice
+                    </button>
+                    <button type="button" class="preset-btn" data-preset="Metformin + High-Fiber Oats">
+                      Metformin + Oats
+                    </button>
+                    <button type="button" class="preset-btn" data-preset="Aspirin + Alcohol">
+                      Aspirin + Alcohol
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Large Analyze Button -->
+                <div class="analyze-btn-container">
+                  <button type="button" id="analyzeBtn" class="btn btn-analyze">
+                    <span class="analyze-icon">⚡</span>
+                    <span class="analyze-text">Analyze Interaction</span>
+                  </button>
+                  <p class="analyze-status-hint">Prediction model ready • Fast client-side evaluation</p>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: RESULTS & HEATMAP -->
+            <div class="results-column">
+
+              <!-- RESULT CARD (Top Right) -->
+              <div class="card result-card">
+                <div class="result-card-header">
+                  <div class="result-title-group">
+                    <div class="result-shield-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="result-heading" id="resultTitle">Lipitor (Atorvastatin) + Grapefruit</h2>
+                      <p class="result-pathway" id="resultPathway">Target Pathway: Intestinal & Hepatic CYP3A4 / OATP1B1
+                      </p>
+                    </div>
+                  </div>
+                  <span class="system-tag" id="resultSystemTag">ALLOPATHIC (BIOBERT + MOE)</span>
+                </div>
+
+                <!-- Results Content Grid: Gauge on Left, Mechanism on Right -->
+                <div class="result-content-grid">
+
+                  <!-- Left: CUSTOM INTERACTION GAUGE -->
+                  <div class="gauge-container">
+                    <div class="gauge-title-label">INTERACTION RISK GAUGE</div>
+
+                    <!-- SVG Semicircle Gauge -->
+                    <div class="gauge-svg-wrapper">
+                      <svg id="interactionGaugeSvg" viewBox="0 0 300 170" class="gauge-svg">
+                        <defs>
+                          <!-- Color Transition Gradient as specified:
+                               Left: Red (-100) -> Orange -> Yellow -> Center (0)
+                               Right: Center (0 Light Yellow) -> Lime/Light Green -> Dark Green (+100) -->
+                          <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#ef4444"></stop> <!-- Far Left: Red (-100) -->
+                            <stop offset="22%" stop-color="#f97316"></stop> <!-- Orange (-50) -->
+                            <stop offset="42%" stop-color="#eab308"></stop> <!-- Yellow -->
+                            <stop offset="50%" stop-color="#fef08a"></stop> <!-- Center: Light Yellow (0) -->
+                            <stop offset="62%" stop-color="#84cc16"></stop> <!-- Slightly Yellow / Lime -->
+                            <stop offset="80%" stop-color="#22c55e"></stop> <!-- Light Green (+50) -->
+                            <stop offset="100%" stop-color="#15803d"></stop> <!-- Far Right: Dark Green (+100) -->
+                          </linearGradient>
+                        </defs>
+
+                        <!-- Background track arc (subtle) -->
+                        <path d="M 45 140 A 105 105 0 0 1 255 140" fill="none" stroke="rgba(255,255,255,0.08)"
+                          stroke-width="24" stroke-linecap="round"></path>
+
+                        <!-- Main colored semicircle gauge arc -->
+                        <path d="M 45 140 A 105 105 0 0 1 255 140" fill="none" stroke="url(#gaugeGradient)"
+                          stroke-width="20" stroke-linecap="round"></path>
+
+                        <!-- Center Neutral Notch at top (0) -->
+                        <line x1="150" y1="26" x2="150" y2="38" stroke="#ffffff" stroke-width="2.5"
+                          stroke-linecap="round"></line>
+
+                        <!-- Scale Numbers -->
+                        <text x="32" y="156" class="gauge-scale-text">-100</text>
+                        <text x="70" y="80" class="gauge-scale-text">-50</text>
+                        <text x="150" y="22" class="gauge-scale-text center-label">0</text>
+                        <text x="230" y="80" class="gauge-scale-text">+50</text>
+                        <text x="268" y="156" class="gauge-scale-text">+100</text>
+
+                        <!-- Scale direction labels -->
+                        <text x="60" y="125" class="gauge-legend-text left">Negative</text>
+                        <text x="240" y="125" class="gauge-legend-text right">Positive</text>
+
+                        <!-- Needle indicator group (Rotates around 150, 140) -->
+                        <g id="gaugeNeedleGroup" transform="rotate(-77 150 140)">
+                          <!-- Needle pointer pointing towards apex -->
+                          <polygon points="146,140 154,140 150,48" fill="#00d2ff" class="needle-body"></polygon>
+                          <!-- Pivot center circle cap -->
+                          <circle cx="150" cy="140" r="9" fill="#0f172a" stroke="#00d2ff" stroke-width="3"></circle>
+                          <circle cx="150" cy="140" r="3.5" fill="#ffffff"></circle>
+                        </g>
+                      </svg>
+                    </div>
+
+                    <!-- Numerical Score Display -->
+                    <div class="score-readout">
+                      <span id="scoreNumber" class="score-number">-86</span>
+                      <span class="score-denominator">/ 100</span>
+                    </div>
+
+                    <!-- Risk Result Status Badge & Message (Directly below gauge) -->
+                    <div class="risk-result-box">
+                      <div id="riskBadge" class="risk-status-badge unsafe">UNSAFE</div>
+                      <div id="riskMessage" class="risk-message-text">Cannot be consumed</div>
+                    </div>
+
+                    <!-- Simple Legend -->
+                    <div class="gauge-legend-bar">
+                      <span class="legend-item"><span class="dot red"></span> Negative (&lt;0)</span>
+                      <span class="legend-item"><span class="dot yellow"></span> Neutral (0)</span>
+                      <span class="legend-item"><span class="dot green"></span> Positive (&gt;0)</span>
+                    </div>
+                  </div>
+
+                  <!-- Right: PHARMACOLOGICAL MECHANISM -->
+                  <div class="mechanism-container">
+                    <div class="mechanism-card">
+                      <div class="mechanism-header">
+                        <span class="mechanism-icon">💡</span>
+                        <span class="mechanism-title">PHARMACOLOGICAL MECHANISM</span>
+                      </div>
+                      <p id="mechanismText" class="mechanism-body">
+                        Grapefruit contains potent furanocoumarins (6',7'-dihydroxybergamottin) that irreversibly
+                        inhibit intestinal CYP3A4 enzymes. This prevents normal first-pass drug clearance and elevates
+                        systemic Lipitor exposure to toxic levels.
+                      </p>
+                    </div>
+
+                    <!-- Suggested Safe Alternatives / Clinical Note -->
+                    <div class="alternatives-card">
+                      <div class="alternatives-header">
+                        <span class="alt-icon">🥗</span>
+                        <span class="alt-title">Suggested Safe Dietary Alternatives</span>
+                      </div>
+                      <div id="alternativesList" class="alternatives-tags">
+                        <span class="alt-pill">Sweet Navel Oranges</span>
+                        <span class="alt-pill">Gala Apples</span>
+                        <span class="alt-pill">Fresh Strawberries</span>
+                        <span class="alt-pill">Blueberries</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- MOLECULAR ATTENTION HEATMAP CARD (Bottom Right) -->
+              <div class="card heatmap-card">
+                <div class="heatmap-header">
+                  <div>
+                    <h3 class="heatmap-title">Interactive Molecular Attention Heatmap</h3>
+                    <p class="heatmap-subtitle">2D structural attention representation</p>
+                  </div>
+                  <div class="heatmap-legend">
+                    <span class="legend-badge red"><span class="dot red"></span> Risk Driver</span>
+                    <span class="legend-badge cyan"><span class="dot cyan"></span> Neutral / Stabilizer</span>
+                  </div>
+                </div>
+
+                <!-- Dark Placeholder Box as strictly requested -->
+                <div class="molecular-placeholder-container">
+                  <div class="structure-placeholder-box">
+                    <div class="placeholder-icon">🔬</div>
+                    <div class="placeholder-text">[Chemical Structure Visualization Area]</div>
+                    <div class="placeholder-subtext">Active Core: <span id="placeholderDrugName">Lipitor
+                        (Atorvastatin)</span></div>
+                  </div>
+
+                  <div class="structure-placeholder-box">
+                    <div class="placeholder-icon">🌱</div>
+                    <div class="placeholder-text">[Chemical Structure Visualization Area]</div>
+                    <div class="placeholder-subtext">Interacting Phytochemical: <span
+                        id="placeholderFoodName">Grapefruit Furanocoumarins</span></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==========================================
+             VIEW 2: PLACEHOLDER VIEWS FOR OTHER TABS
+             (Analytics, Reports, History, Alerts)
+             ========================================== -->
+        <section id="placeholderView" class="tab-view">
+          <div class="card tab-placeholder-card">
+            <div class="placeholder-card-icon" id="placeholderIcon">📊</div>
+            <h2 class="placeholder-card-title" id="placeholderTitle">Analytics Hub</h2>
+            <p class="placeholder-card-description" id="placeholderDesc">
+              This module is prepared for future college project expansion. It will display statistical charts,
+              interaction frequency breakdowns, and drug-class clustering once connected to the database.
+            </p>
+            <div class="viva-note centered">
+              <span class="viva-note-icon">🎓</span>
+              <span><strong>College Project Viva Note:</strong> The main project focus is on the <em>Home</em> tab
+                Drug–Food Interaction Prediction & Custom Gauge Engine.</span>
+            </div>
+            <button type="button" id="backToHomeBtn" class="btn btn-primary">← Return to DFI Prediction Hub</button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <!-- Vanilla JavaScript -->
+  <script src="script.js"></script>
+</body>
+
+</html>
